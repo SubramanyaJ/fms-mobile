@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "991589047315",
+    "project_id": "spendwell-fms",
+    "storage_bucket": "spendwell-fms.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:991589047315:android:9a810f8a9aecd6413ab3e6",
+        "android_client_info": {
+          "package_name": "com.example.fms"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD0W20QazFWeOgHnxprzvktIsWosg7MHlI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:991589047315:android:3d127fb2ae8f17db3ab3e6",
+        "android_client_info": {
+          "package_name": "com.sauzsusa.spendwell"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD0W20QazFWeOgHnxprzvktIsWosg7MHlI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
