@@ -1,264 +1,396 @@
 // /lib/pages/home_page.dart
 
 import 'package:flutter/material.dart';
-import 'quick_analysis_page.dart'; // Make sure this path is correct
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
+import 'quick_analysis_page.dart';
+import 'profile_page.dart';
+import 'catalog_page.dart';
+import 'report_page.dart';
+import '../widgets/pull_to_refresh_wrapper.dart';
 
 class HomePage extends StatefulWidget {
+  static final ValueNotifier<int> tabNotifier = ValueNotifier<int>(0);
+
+  static void setTab(int index) {
+    tabNotifier.value = index;
+  }
+
   @override
   _HomePageState createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
-  int _selectedIndex = 0;
-
-  final List<Widget> _pages = [
-    HomeMainContent(),
-    QuickAnalysisPage(),
-    Center(child: Text("Transactions", style: TextStyle(color: Colors.white))),
-    Center(child: Text("Layers", style: TextStyle(color: Colors.white))),
-    Center(child: Text("Profile", style: TextStyle(color: Colors.white))),
-  ];
+  final List<GlobalKey<NavigatorState>> _navigatorKeys =
+  List.generate(5, (_) => GlobalKey<NavigatorState>());
 
   void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+    if (HomePage.tabNotifier.value == index) {
+      _navigatorKeys[index].currentState?.popUntil((route) => route.isFirst);
+    } else {
+      HomePage.setTab(index);
+    }
+  }
+
+  Future<bool> _onWillPop() async {
+    final currentNavigator =
+    _navigatorKeys[HomePage.tabNotifier.value].currentState!;
+    if (currentNavigator.canPop()) {
+      currentNavigator.pop();
+      return false;
+    }
+    return true;
+  }
+
+  Widget _buildOffstageNavigator(int index, Widget child) {
+    return Offstage(
+      offstage: HomePage.tabNotifier.value != index,
+      child: Navigator(
+        key: _navigatorKeys[index],
+        onGenerateRoute: (_) => MaterialPageRoute(builder: (_) => child),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Color(0xFF0D0B2D),
-      body: SafeArea(child: _pages[_selectedIndex]),
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: Color(0xFF0D0B2D),
-        selectedItemColor: Colors.white,
-        unselectedItemColor: Colors.white38,
-        type: BottomNavigationBarType.fixed,
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.swap_horiz), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.layers), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: ''),
-        ],
-      ),
+    return ValueListenableBuilder<int>(
+      valueListenable: HomePage.tabNotifier,
+      builder: (context, selectedIndex, _) {
+        return WillPopScope(
+          onWillPop: _onWillPop,
+          child: Scaffold(
+            backgroundColor: const Color(0xFF0D0B2D),
+            body: Stack(
+              children: [
+                _buildOffstageNavigator(0, HomeMainContent()),
+                _buildOffstageNavigator(1, QuickAnalysisPage()),
+                _buildOffstageNavigator(2, ReportPage()),
+                _buildOffstageNavigator(3, CatalogPage()),
+                _buildOffstageNavigator(4, ProfilePage()),
+              ],
+            ),
+            bottomNavigationBar: BottomNavigationBar(
+              backgroundColor: const Color(0xFF0D0B2D),
+              selectedItemColor: Colors.white,
+              unselectedItemColor: Colors.white38,
+              type: BottomNavigationBarType.fixed,
+              currentIndex: selectedIndex,
+              onTap: _onItemTapped,
+              items: const [
+                BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+                BottomNavigationBarItem(
+                    icon: Icon(Icons.swap_horiz), label: 'Transactions'),
+                BottomNavigationBarItem(
+                    icon: Icon(Icons.bar_chart), label: 'Analysis'),
+                BottomNavigationBarItem(
+                    icon: Icon(Icons.payment), label: 'Catalog'),
+                BottomNavigationBarItem(
+                    icon: Icon(Icons.person), label: 'Profile'),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
 
 class HomeMainContent extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        // Header
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Hi, Welcome Back',
-                    style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                  Text(
-                    'Good Morning',
-                    style: TextStyle(color: Colors.white70, fontSize: 14),
-                  ),
-                ],
-              ),
-              Icon(Icons.notifications_none, color: Colors.white),
-            ],
-          ),
-        ),
+  final String uid = FirebaseAuth.instance.currentUser?.uid ?? '';
 
-        // Balance section
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _buildBalanceCard('Total Balance', '₹7,783.00'),
-              _buildBalanceCard('Total Expense', '-₹1,187.40', isExpense: true),
-            ],
-          ),
-        ),
-
-        // Progress bar
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              LinearProgressIndicator(
-                value: 0.3,
-                minHeight: 8,
-                backgroundColor: Colors.white10,
-                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6CF6E8)),
-              ),
-              SizedBox(height: 4),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('30%', style: TextStyle(color: Colors.white)),
-                  Text('₹20,000.00', style: TextStyle(color: Colors.white)),
-                ],
-              ),
-              SizedBox(height: 4),
-              Row(
-                children: [
-                  Icon(Icons.check_box, color: Colors.white70, size: 16),
-                  SizedBox(width: 4),
-                  Text(
-                    '30% Of Your Expenses, Looks Good.',
-                    style: TextStyle(color: Colors.white70, fontSize: 12),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        SizedBox(height: 16),
-
-        // Savings card
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Color(0xFFB5F12D),
-              borderRadius: BorderRadius.circular(24),
-            ),
-            padding: EdgeInsets.all(16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                Column(
-                  children: [
-                    Icon(Icons.directions_car, size: 32, color: Colors.black87),
-                    SizedBox(height: 8),
-                    Text('Savings\nOn Goals', textAlign: TextAlign.center, style: TextStyle(color: Colors.black87)),
-                  ],
-                ),
-                VerticalDivider(color: Colors.black54, thickness: 1),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Revenue Last Week', style: TextStyle(color: Colors.black87)),
-                    Text('₹4,000.00', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
-                    SizedBox(height: 8),
-                    Text('Food Last Week', style: TextStyle(color: Colors.black87)),
-                    Text('-₹100.00', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-        SizedBox(height: 16),
-
-        // Toggle Tabs
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _buildTabButton('Daily', false),
-              _buildTabButton('Weekly', false),
-              _buildTabButton('Monthly', true),
-            ],
-          ),
-        ),
-        SizedBox(height: 16),
-
-        // Transactions
-        Expanded(
-          child: ListView(
-            padding: EdgeInsets.symmetric(horizontal: 24),
-            children: [
-              _buildTransactionItem('Salary', '18:27 - April 30', 'Monthly', '₹4,000.00', Icons.attach_money),
-              _buildTransactionItem('Groceries', '17:00 - April 24', 'Pantry', '-₹100.00', Icons.shopping_cart),
-              _buildTransactionItem('Rent', '8:30 - April 15', 'Rent', '-₹674.40', Icons.home),
-            ],
-          ),
-        ),
-      ],
-    );
+  Stream<String> _getUserName() {
+    return FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .snapshots()
+        .map((doc) => doc.data()?['full_name'] ?? 'User');
   }
 
-  Widget _buildBalanceCard(String label, String value, {bool isExpense = false}) {
-    return Expanded(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: TextStyle(color: Colors.white54, fontSize: 12)),
-          SizedBox(height: 4),
-          Text(
-            value,
-            style: TextStyle(
-              color: isExpense ? Colors.lightBlueAccent : Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
+  Stream<String> _getQuote() {
+    return FirebaseFirestore.instance
+        .collection('quotes')
+        .limit(1)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.isNotEmpty
+        ? snapshot.docs.first.data()['text'] ?? ''
+        : 'Stay focused and consistent!');
+  }
+
+  Stream<List<Map<String, dynamic>>> _getTransactions() {
+    return FirebaseFirestore.instance
+        .collection('transactions')
+        .where('uid', isEqualTo: uid)
+        .snapshots()
+        .map((snap) => snap.docs.map((e) => e.data()).toList());
+  }
+
+  Stream<Map<String, dynamic>?> _getSavingsGoal() {
+    return FirebaseFirestore.instance
+        .collection('savings')
+        .where('uid', isEqualTo: uid)
+        .limit(1)
+        .snapshots()
+        .map((snap) => snap.docs.isNotEmpty ? snap.docs.first.data() : null);
+  }
+
+  Stream<List<Map<String, dynamic>>> _getReminders() {
+    return FirebaseFirestore.instance
+        .collection('reminders')
+        .where('uid', isEqualTo: uid)
+        .orderBy('dueDate')
+        .snapshots()
+        .map((snap) => snap.docs.map((e) => e.data()).toList());
+  }
+
+  void _showAddReminderDialog(BuildContext context) {
+    final titleController = TextEditingController();
+    final noteController = TextEditingController();
+    DateTime? selectedDate;
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text('Add Reminder'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(controller: titleController, decoration: InputDecoration(labelText: 'Title')),
+            TextField(controller: noteController, decoration: InputDecoration(labelText: 'Note')),
+            TextButton(
+              onPressed: () async {
+                final now = DateTime.now();
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: now,
+                  firstDate: now,
+                  lastDate: DateTime(now.year + 5),
+                );
+                if (picked != null) {
+                  selectedDate = picked;
+                }
+              },
+              child: Text('Pick Due Date'),
             ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              if (titleController.text.isNotEmpty && selectedDate != null) {
+                await FirebaseFirestore.instance.collection('reminders').add({
+                  'uid': uid,
+                  'title': titleController.text,
+                  'note': noteController.text,
+                  'dueDate': Timestamp.fromDate(selectedDate!),
+                });
+                Navigator.of(context).pop();
+              }
+            },
+            child: Text('Add'),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildTabButton(String label, bool isActive) {
-    return Expanded(
-      child: Container(
-        alignment: Alignment.center,
-        padding: EdgeInsets.symmetric(vertical: 10),
-        decoration: BoxDecoration(
-          color: isActive ? Color(0xFF1E88E5) : Colors.transparent,
-          borderRadius: BorderRadius.circular(24),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(color: Colors.white, fontWeight: isActive ? FontWeight.bold : FontWeight.normal),
+  @override
+  Widget build(BuildContext context) {
+    return PullToRefreshWrapper(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.only(top: 8.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                StreamBuilder<String>(
+                  stream: _getUserName(),
+                  builder: (_, snapshot) {
+                    final name = snapshot.data ?? 'User';
+                    return Text(
+                      'Welcome, $name 👋',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 4),
+                StreamBuilder<String>(
+                  stream: _getQuote(),
+                  builder: (_, snapshot) {
+                    final quote = snapshot.data ?? '';
+                    return Text(
+                      '"$quote"',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontStyle: FontStyle.italic,
+                        fontSize: 14,
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 24),
+
+                // Smart Alerts
+                StreamBuilder<List<Map<String, dynamic>>>(
+                  stream: _getTransactions(),
+                  builder: (_, snapshot) {
+                    final transactions = snapshot.data ?? [];
+                    String alert = 'All good!';
+                    double monthlyExpense = 0;
+
+                    final now = DateTime.now();
+                    for (var tx in transactions) {
+                      DateTime txTime =
+                      (tx['timestamp'] as Timestamp).toDate();
+                      if (tx['type'] == 'expense' &&
+                          txTime.month == now.month &&
+                          txTime.year == now.year) {
+                        monthlyExpense += (tx['amount'] ?? 0).toDouble();
+                      }
+                    }
+
+                    if (monthlyExpense > 10000) {
+                      alert = 'Warning: You\'ve spent over ₹10,000 this month!';
+                    }
+
+                    return _buildCard('Smart Alerts + Warnings', alert);
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // Budget Progress
+                StreamBuilder<Map<String, dynamic>?>(
+                  stream: _getSavingsGoal(),
+                  builder: (_, snapshot) {
+                    final data = snapshot.data;
+                    if (data == null) {
+                      return _buildCard('Budget Goal Progress',
+                          'No budget goal set. Add one in Catalog.');
+                    }
+                    final target = data['amount']?.toDouble() ?? 0;
+                    final days = data['days']?.toInt() ?? 1;
+                    final start = (data['timestamp'] as Timestamp).toDate();
+                    final now = DateTime.now();
+                    final elapsedDays = now.difference(start).inDays;
+                    final expectedProgress =
+                    (elapsedDays / days).clamp(0.0, 1.0);
+                    final progress = expectedProgress;
+
+                    return _buildCard(
+                      'Budget Goal Progress',
+                      'Progress: ${(progress * 100).toStringAsFixed(1)}%',
+                      child: LinearProgressIndicator(
+                        value: progress,
+                        color: Colors.greenAccent,
+                        backgroundColor: Colors.white12,
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // Financial Milestones
+                StreamBuilder<List<Map<String, dynamic>>>(
+                  stream: _getTransactions(),
+                  builder: (_, snapshot) {
+                    final txns = snapshot.data ?? [];
+                    double saved = 0;
+                    for (var tx in txns) {
+                      if (tx['type'] == 'income') {
+                        saved += (tx['amount'] ?? 0).toDouble();
+                      }
+                    }
+                    String milestone =
+                        'Total Saved: ₹${saved.toStringAsFixed(2)}';
+                    return _buildCard('Financial Milestones', milestone);
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // Upcoming Reminders
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Upcoming Bills/Reminders',
+                        style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold)),
+                    IconButton(
+                      icon: Icon(Icons.add, color: Colors.white),
+                      onPressed: () => _showAddReminderDialog(context),
+                    ),
+                  ],
+                ),
+                StreamBuilder<List<Map<String, dynamic>>>(
+                  stream: _getReminders(),
+                  builder: (_, snapshot) {
+                    final reminders = snapshot.data ?? [];
+                    return Column(
+                      children: reminders.map((r) {
+                        final dueDate =
+                        (r['dueDate'] as Timestamp).toDate();
+                        return Container(
+                          margin: EdgeInsets.only(bottom: 12),
+                          padding: EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Color(0xFF1F1B4A),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: ListTile(
+                            title: Text(r['title'] ?? '',
+                                style: TextStyle(color: Colors.white)),
+                            subtitle: Text(
+                                '${r['note'] ?? ''}\nDue: ${dueDate.day}/${dueDate.month}/${dueDate.year}',
+                                style: TextStyle(
+                                    color: Colors.white70, fontSize: 12)),
+                          ),
+                        );
+                      }).toList(),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildTransactionItem(String title, String time, String category, String amount, IconData icon) {
+  Widget _buildCard(String title, String content, {Widget? child}) {
     return Container(
-      margin: EdgeInsets.only(bottom: 16),
-      padding: EdgeInsets.all(16),
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Color(0xFF1D1A40),
+        color: const Color(0xFF1F1B4A),
         borderRadius: BorderRadius.circular(16),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
-            backgroundColor: Colors.blue[100],
-            child: Icon(icon, color: Colors.blue[900]),
-          ),
-          SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                Text(time, style: TextStyle(color: Colors.white70, fontSize: 12)),
-              ],
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(category, style: TextStyle(color: Colors.tealAccent, fontSize: 12)),
-              Text(amount, style: TextStyle(color: amount.startsWith('-') ? Colors.red : Colors.white)),
-            ],
-          ),
+          Text(title,
+              style: TextStyle(
+                  color: Colors.white70,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16)),
+          const SizedBox(height: 8),
+          Text(content,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+              )),
+          if (child != null) ...[
+            const SizedBox(height: 12),
+            child,
+          ]
         ],
       ),
     );

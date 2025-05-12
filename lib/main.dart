@@ -11,6 +11,7 @@ import 'pages/quick_analysis_page.dart';
 import 'pages/daily_analysis_view.dart';
 import 'pages/analysis_view_base.dart';
 
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(

@@ -1,3 +1,4 @@
+import 'home_page.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -90,6 +91,12 @@ class _AnalysisViewBaseState extends State<AnalysisViewBase> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: Colors.white,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios),
+          onPressed: () {
+            HomePage.setTab(0); // Back to Home tab
+          },
+        ),
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())

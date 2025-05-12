@@ -131,6 +131,13 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
 
+                // Signup prompt above button
+                Text(
+                  "Don't have an account?",
+                  style: TextStyle(color: Colors.white),
+                ),
+                SizedBox(height: 8),
+
                 // Sign Up Button
                 SizedBox(
                   width: double.infinity,
@@ -157,41 +164,6 @@ class _LoginPageState extends State<LoginPage> {
                 ),
 
                 SizedBox(height: 24),
-
-                // Social login icons
-                // Text(
-                //   'or sign up with',
-                //   style: TextStyle(color: Colors.white54),
-                // ),
-                // SizedBox(height: 12),
-                // Row(
-                //   mainAxisAlignment: MainAxisAlignment.center,
-                //   children: [
-                //     CircleAvatar(
-                //       backgroundColor: Colors.white,
-                //       radius: 20,
-                //       child: Icon(Icons.facebook, color: Colors.indigo),
-                //     ),
-                //     SizedBox(width: 20),
-                //     CircleAvatar(
-                //       backgroundColor: Colors.white,
-                //       radius: 20,
-                //       child: Icon(Icons.g_mobiledata, color: Colors.red),
-                //     ),
-                //   ],
-                // ),
-                // SizedBox(height: 16),
-
-                // Bottom signup link
-                TextButton(
-                  onPressed: () {
-                    Navigator.pushNamed(context, '/create-account');
-                  },
-                  child: Text(
-                    "Don't have an account? Sign Up",
-                    style: TextStyle(color: Colors.lightBlueAccent),
-                  ),
-                ),
               ],
             ),
           ),
